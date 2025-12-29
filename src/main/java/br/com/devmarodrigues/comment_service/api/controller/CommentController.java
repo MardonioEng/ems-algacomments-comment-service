@@ -4,8 +4,13 @@ import br.com.devmarodrigues.comment_service.api.model.CommentInput;
 import br.com.devmarodrigues.comment_service.api.model.CommentOutput;
 import br.com.devmarodrigues.comment_service.domain.model.Comment;
 import br.com.devmarodrigues.comment_service.domain.model.repositoty.CommentRepository;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,6 +25,12 @@ public class CommentController {
 
     private CommentRepository commentRepository;
 
+    @GetMapping
+    public Page<CommentOutput> getAll(@PageableDefault Pageable pageable) {
+        Page<Comment> comments = commentRepository.findAll(pageable);
+        return comments.map(this::convertToModel);
+    }
+
     @GetMapping("/{commentId}")
     public CommentOutput getDetail(@PathVariable UUID commentId) {
         Comment comment = commentRepository.findById(commentId)
@@ -29,7 +40,7 @@ public class CommentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CommentOutput create(@RequestBody CommentInput commentInput) {
+    public CommentOutput create(@RequestBody @Valid CommentInput commentInput) {
         Comment comment = Comment.builder()
             .id(UUID.randomUUID())
             .text(commentInput.getText())
@@ -44,8 +55,10 @@ public class CommentController {
 
     private CommentOutput convertToModel(@NonNull Comment comment) {
         return CommentOutput.builder()
+            .id(comment.getId())
             .text(comment.getText())
             .author(comment.getAuthor())
+            .createdAt(comment.getCreatedAt())
             .build();
     }
 
